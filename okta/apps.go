@@ -10,6 +10,7 @@ type AppsService service
 
 // GetByID fetches a single application by its ID
 func (s *AppsService) GetByID(ctx context.Context, id string) (*App, *Response, error) {
+	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, appsGetUpdateDeleteCategory)
 	path := fmt.Sprintf("apps/%s", id)
 	req, err := s.client.NewRequest("GET", path, nil)
 	if err != nil {

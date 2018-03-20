@@ -21,6 +21,7 @@ const (
 	headerRateLimit     = "X-Rate-Limit-Limit"
 	headerRateRemaining = "X-Rate-Limit-Remaining"
 	headerRateReset     = "X-Rate-Limit-Reset"
+	headerRequestID     = "X-Okta-Request-Id"
 )
 
 type contextKey string
@@ -38,6 +39,9 @@ type Client struct {
 	rateMu     sync.Mutex
 	rateLimits [categories]Rate // Rate limits for the client as determined by the most recent API calls.
 	common     service          // Reuse a single struct instead of allocating one for each service on the heap.
+
+	Apps   *AppsService
+	Groups *GroupsService
 }
 
 // Response represents a response from the Okta API.
@@ -73,14 +77,18 @@ func NewClient(apiToken string, paramBaseURL string, httpClient *http.Client) (*
 		httpClient = http.DefaultClient
 	}
 
-	client := &Client{
+	c := &Client{
 		UserAgent:  userAgent,
 		BaseURL:    baseURL,
 		apiToken:   apiToken,
 		httpClient: httpClient,
 	}
 
-	return client, nil
+	c.common.client = c
+	c.Apps = (*AppsService)(&c.common)
+	c.Groups = (*GroupsService)(&c.common)
+
+	return c, nil
 }
 
 // NewRequest creates a new *http.Request that can be used to query the Okta API.
@@ -145,6 +153,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	response := &Response{Response: resp}
 	// TODO: Pagination?
 	response.Rate = rateLimit
+	response.OktaRequestID = resp.Header.Get(headerRequestID)
 
 	if v != nil {
 		if w, ok := v.(io.Writer); ok {
