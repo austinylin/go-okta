@@ -15,17 +15,17 @@ type rateLimitCategory int
 
 const (
 	coreCategory rateLimitCategory = iota
-	appsCreateListCategory
-	appsGetUpdateDeleteCategory
-	authnCategory
-	groupsCreateListCategory
-	groupsGetUpdateDeleteCategory
-	logsCategory
-	sessionsCategory
-	usersCreateListCategory
-	usersGetByIDCategory
-	usersGetByLoginNameCategory
-	usersCreateUpdateDeleteByIDCategory
+	rateLimitAppsCreateListCategory
+	rateLimitAppsGetUpdateDeleteCategory
+	rateLimitAuthnCategory
+	rateLimitGroupsCreateListCategory
+	rateLimitGroupsGetUpdateDeleteCategory
+	rateLimitLogsCategory
+	rateLimitSessionsCategory
+	rateLimitUsersCreateListCategory
+	rateLimitUsersGetByIDCategory
+	rateLimitUsersGetByLoginNameCategory
+	rateLimitUsersCreateUpdateDeleteByIDCategory
 
 	categories // An array of this length will be able to contain all rate limit categories.
 )

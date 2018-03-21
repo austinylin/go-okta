@@ -13,7 +13,7 @@ type AppsService service
 //
 // https://developer.okta.com/docs/api/resources/apps#get-application
 func (s *AppsService) GetByID(ctx context.Context, id string) (*App, *Response, error) {
-	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, appsGetUpdateDeleteCategory)
+	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, rateLimitAppsGetUpdateDeleteCategory)
 	path := fmt.Sprintf("apps/%s", id)
 	req, err := s.client.NewRequest("GET", path, nil)
 	if err != nil {
@@ -132,7 +132,7 @@ func (s *AppsService) AddSAMLApp(
 //
 // https://developer.okta.com/docs/api/resources/apps#add-application
 func (s *AppsService) Add(ctx context.Context, appIn *App, activate bool) (*App, *Response, error) {
-	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, appsCreateListCategory)
+	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, rateLimitAppsCreateListCategory)
 	path := fmt.Sprintf("apps?activate=%t", activate)
 	req, err := s.client.NewRequest("POST", path, appIn)
 	if err != nil {
