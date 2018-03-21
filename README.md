@@ -1,2 +1,2 @@
-## Rate Limits
-Okta's rate limits generally map nicely to URL paths, but there are some cases where that doesn't happen including the User APIs. As a result we don't infer the rate limit category from the path, instead it's specified as part of the API call context.
+# go-okta
+This is a very unstable, API client for the Okta API. The initial focus will be on the management API.
