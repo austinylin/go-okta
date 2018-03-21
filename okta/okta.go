@@ -1,5 +1,6 @@
 package okta
 
+// Portions of this code are inspired by and borrowed from https://github.com/google/go-github
 import (
 	"bytes"
 	"context"
@@ -8,8 +9,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +26,7 @@ const (
 	headerRateRemaining = "X-Rate-Limit-Remaining"
 	headerRateReset     = "X-Rate-Limit-Reset"
 	headerRequestID     = "X-Okta-Request-Id"
+	envDebug            = "GO_OKTA_DEBUG"
 )
 
 type contextKey string
@@ -130,6 +135,12 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
 	req = req.WithContext(ctx)
 
+	// If we are in debug mode, log the request prior to adding the auth header.
+	if os.Getenv(envDebug) != "" {
+		reqDump, _ := httputil.DumpRequest(req, true)
+		log.Printf("Request:\n %s\n", reqDump)
+	}
+
 	// Auth
 	req.Header.Set("Authorization", fmt.Sprintf("SSWS %s", c.apiToken))
 
@@ -145,6 +156,32 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	// actually send the request
 	resp, err := c.httpClient.Do(req)
 
+	// If we are in debug mode, log the response.
+	if os.Getenv(envDebug) != "" {
+		respDump, _ := httputil.DumpResponse(resp, true)
+		log.Printf("Response:\n %s\n", respDump)
+	}
+
+	if err != nil {
+		// If we got an error, and the context has been canceled,
+		// the context's error is probably more useful.
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		if e, ok := err.(*url.Error); ok {
+			if url, err := url.Parse(e.URL); err == nil {
+				e.URL = url.String()
+				return nil, e
+			}
+		}
+
+		return nil, err
+	}
+	defer resp.Body.Close()
+
 	rateLimit := parseRate(resp)
 	c.rateMu.Lock()
 	c.rateLimits[rateLimitCategory] = rateLimit
@@ -154,6 +191,11 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	// TODO: Pagination?
 	response.Rate = rateLimit
 	response.OktaRequestID = resp.Header.Get(headerRequestID)
+
+	err = checkResponseForErrors(resp)
+	if err != nil {
+		return response, err
+	}
 
 	if v != nil {
 		if w, ok := v.(io.Writer); ok {
@@ -210,4 +252,34 @@ func (c *Client) checkRateLimitBeforeDo(req *http.Request, rateLimitCategory rat
 	}
 
 	return nil
+}
+
+// checkResponseForErrors checks the API response for errors, and returns them if
+// present. A response is considered an error if it has a status code outside
+// the 200 range or equal to 202 Accepted.
+// API error responses are expected to have either no response
+// body, or a JSON response body that maps to ErrorResponse. Any other
+// response body will be silently ignored.
+//
+// The error type will be *RateLimitError for rate limit exceeded errors,
+// *AcceptedError for 202 Accepted status codes,
+// and *TwoFactorAuthError for two-factor authentication errors.
+func checkResponseForErrors(r *http.Response) error {
+	if c := r.StatusCode; 200 <= c && c <= 299 {
+		return nil
+	}
+	errorResponse := &ErrorResponse{Response: r}
+	data, err := ioutil.ReadAll(r.Body)
+	if err == nil && data != nil {
+		json.Unmarshal(data, errorResponse)
+	}
+	switch {
+	case r.StatusCode == http.StatusForbidden && r.Header.Get(headerRateRemaining) == "0":
+		return &RateLimitError{
+			Rate:     parseRate(r),
+			Response: errorResponse.Response,
+		}
+	default:
+		return errorResponse
+	}
 }
