@@ -14,7 +14,7 @@ type Rate struct {
 type rateLimitCategory int
 
 const (
-	coreCategory rateLimitCategory = iota
+	rateLimitCoreCategory rateLimitCategory = iota
 	rateLimitAppsCreateListCategory
 	rateLimitAppsGetUpdateDeleteCategory
 	rateLimitAuthnCategory

@@ -4,9 +4,9 @@ package okta
 
 import "strconv"
 
-const _rateLimitCategory_name = "coreCategoryappsCreateListCategoryappsGetUpdateDeleteCategoryauthnCategorygroupsCreateListCategorygroupsGetUpdateDeleteCategorylogsCategorysessionsCategoryusersCreateListCategoryusersGetByIdCategoryusersGetByLoginNameCategoryusersCreateUpdateDeleteByIdCategorycategories"
+const _rateLimitCategory_name = "rateLimitCoreCategoryrateLimitAppsCreateListCategoryrateLimitAppsGetUpdateDeleteCategoryrateLimitAuthnCategoryrateLimitGroupsCreateListCategoryrateLimitGroupsGetUpdateDeleteCategoryrateLimitLogsCategoryrateLimitSessionsCategoryrateLimitUsersCreateListCategoryrateLimitUsersGetByIDCategoryrateLimitUsersGetByLoginNameCategoryrateLimitUsersCreateUpdateDeleteByIDCategorycategories"
 
-var _rateLimitCategory_index = [...]uint16{0, 12, 34, 61, 74, 98, 127, 139, 155, 178, 198, 225, 260, 270}
+var _rateLimitCategory_index = [...]uint16{0, 21, 52, 88, 110, 143, 181, 202, 227, 259, 288, 324, 368, 378}
 
 func (i rateLimitCategory) String() string {
 	if i < 0 || i >= rateLimitCategory(len(_rateLimitCategory_index)-1) {
