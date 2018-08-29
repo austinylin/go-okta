@@ -147,3 +147,49 @@ func (s *AppsService) Add(ctx context.Context, appIn *App, activate bool) (*App,
 
 	return appOut, resp, nil
 }
+
+// ListAssignedUsers fetches the users assigned to the specified application id.
+//
+// https://developer.okta.com/docs/api/resources/apps#list-users-assigned-to-application
+func (s *AppsService) ListAssignedUsers(ctx context.Context, id string) ([]*AppUser, *Response, error) {
+	path := fmt.Sprintf("apps/%s/users?limit=%d", id, 100)
+	var appUsersAcc []*AppUser
+	return s.listAssignedUsersPaginated(ctx, path, appUsersAcc)
+}
+
+// listAssignedUsers is a helper function.
+//
+// https://developer.okta.com/docs/api/resources/apps#list-users-assigned-to-application
+func (s *AppsService) listAssignedUsers(ctx context.Context, path string) ([]*AppUser, *Response, error) {
+	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, rateLimitCoreCategory)
+	req, err := s.client.NewRequest("GET", path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var appUsers []*AppUser
+	resp, err := s.client.Do(ctx, req, &appUsers)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return appUsers, resp, nil
+}
+
+// listAssignedUsersPaginated is a helper function to ListAssignedUsers that handles pagination.
+//
+// https://developer.okta.com/docs/api/resources/apps#list-users-assigned-to-application
+func (s *AppsService) listAssignedUsersPaginated(ctx context.Context, path string, appUserAcc []*AppUser) ([]*AppUser, *Response, error) {
+	ctx = context.WithValue(ctx, rateLimitCategoryCtxKey, rateLimitCoreCategory)
+	appUsers, resp, err := s.listAssignedUsers(ctx, path)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	appUserAcc = append(appUserAcc, appUsers...)
+	if len(resp.Pagination.Next) == 0 {
+		return appUserAcc, resp, nil
+	}
+
+	return s.listAssignedUsersPaginated(ctx, resp.Pagination.Next, appUserAcc)
+}

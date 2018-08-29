@@ -47,6 +47,7 @@ type Client struct {
 
 	Apps   *AppsService
 	Groups *GroupsService
+	Users  *UsersService
 }
 
 // Response represents a response from the Okta API.
@@ -92,6 +93,7 @@ func NewClient(apiToken string, paramBaseURL string, httpClient *http.Client) (*
 	c.common.client = c
 	c.Apps = (*AppsService)(&c.common)
 	c.Groups = (*GroupsService)(&c.common)
+	c.Users = (*UsersService)(&c.common)
 
 	return c, nil
 }

@@ -1,6 +1,9 @@
 package okta
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
 // App represents an application in Okta
 type App struct {
@@ -177,4 +180,34 @@ type AppVisability struct {
 type AppVisabilityHide struct {
 	IOS bool `json:"iOS"`
 	Web bool `json:"web"`
+}
+
+// AppUser represents a user that is assigned to an App.
+//
+// https://developer.okta.com/docs/api/resources/apps#application-user-model
+type AppUser struct {
+	ID              string    `json:"id"`
+	ExternalID      string    `json:"externalId"`
+	Created         time.Time `json:"created"`
+	LastUpdated     time.Time `json:"lastUpdated"`
+	Scope           string    `json:"scope"`
+	Status          string    `json:"status"`
+	StatusChanged   time.Time `json:"statusChanged"`
+	PasswordChanged time.Time `json:"passwordChanged"`
+	SyncState       string    `json:"syncState"`
+	LastSync        time.Time `json:"lastSync"`
+	Credentials     struct {
+		UserName string `json:"userName"`
+		Password struct {
+		} `json:"password"`
+	} `json:"credentials"`
+	Profile struct{} `json:"profile"`
+	Links   struct {
+		App struct {
+			Link string `json:"href"`
+		} `json:"app"`
+		User struct {
+			Link string `json:"href"`
+		} `json:"user"`
+	} `json:"_links"`
 }
