@@ -47,6 +47,7 @@ type Client struct {
 
 	Apps   *AppsService
 	Groups *GroupsService
+	Users  *UsersService
 }
 
 // Response represents a response from the Okta API.
@@ -59,9 +60,9 @@ type Response struct {
 
 // Pagination represents the pagination primiatives of the Okta API.
 type Pagination struct {
-	Prev  string `json:"prev"`
-	Next  string `json:"next"`
-	Limit int    `json:"limit"`
+	Prev string `json:"prev"`
+	Next string `json:"next"`
+	Self string `json:"self"`
 }
 
 // NewClient creates a new Okta API client.
@@ -92,6 +93,7 @@ func NewClient(apiToken string, paramBaseURL string, httpClient *http.Client) (*
 	c.common.client = c
 	c.Apps = (*AppsService)(&c.common)
 	c.Groups = (*GroupsService)(&c.common)
+	c.Users = (*UsersService)(&c.common)
 
 	return c, nil
 }
@@ -188,7 +190,10 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	c.rateMu.Unlock()
 
 	response := &Response{Response: resp}
-	// TODO: Pagination?
+
+	response.Pagination = Pagination{}
+	response.populatePageValues()
+
 	response.Rate = rateLimit
 	response.OktaRequestID = resp.Header.Get(headerRequestID)
 
@@ -209,6 +214,44 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	}
 
 	return response, err
+}
+
+// populatePageValues parses the HTTP Link response headers and populates the
+// various pagination link values in the Response.
+func (r *Response) populatePageValues() {
+	if links, ok := r.Response.Header["Link"]; ok && len(links) > 0 {
+		for _, link := range links {
+			segments := strings.Split(strings.TrimSpace(link), ";")
+
+			// link must at least have href and rel
+			if len(segments) < 2 {
+				continue
+			}
+
+			// ensure href is properly formatted
+			if !strings.HasPrefix(segments[0], "<") || !strings.HasSuffix(segments[0], ">") {
+				continue
+			}
+
+			// pull out the URL
+			url, err := url.Parse(segments[0][1 : len(segments[0])-1])
+			if err != nil {
+				continue
+			}
+
+			for _, segment := range segments[1:] {
+				switch strings.TrimSpace(segment) {
+				case `rel="next"`:
+					r.Pagination.Next = url.String()
+				case `rel="prev"`:
+					r.Pagination.Prev = url.String()
+				case `rel="self"`:
+					r.Pagination.Self = url.String()
+				}
+
+			}
+		}
+	}
 }
 
 func parseRate(r *http.Response) Rate {
